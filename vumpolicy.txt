@@ -1,1 +1,61 @@
-test
+
+# VULNERABILITY MANAGEMENT POLICY
+
+| Policy ID | VM-2025-001 | Version | 1.0 |
+|---|---|---|---|
+| **Owner** | Security Department | **Last Updated** | October 17, 2025 |
+
+---
+
+## 1. Purpose
+
+The purpose of this Vulnerability Management Policy is to establish a structured and consistent process for the proactive identification, assessment, remediation, and reporting of security weaknesses across all organizational assets.
+
+---
+
+## 2. Scope
+
+This policy applies to all technology assets owned, leased, or managed by the organization, including, but not limited to: servers, network devices, workstations, cloud environments, internally developed applications, and third-party software used by employees or contractors.
+
+---
+
+## 3. Roles and Responsibilities
+
+| Role/Department | Responsibilities |
+|---|---|
+| **Security Team** | Leads the program, defines scanning schedules, analyzes all vulnerability data, and manages the exception process. |
+| **IT Operations** | Responsible for applying patches and configuration changes to address identified vulnerabilities within established service level agreements (SLAs). |
+| **Application Owners** | Responsible for remediation of vulnerabilities within their dedicated applications, particularly those found in custom code or dependencies. |
+| **Management** | Responsible for approving policy, allocating resources, and reviewing periodic risk and remediation reports. |
+
+---
+
+## 4. Detection
+- Vulnerability Scanning Agent (VUM-02 - Daily - RA-01) - System should have a vulnerability Scanning Agent
+- Vulnerability Scanning Frequency (VUM-03 - Monthly - RA-01) - Systems should have monthly vulnerability scans
+
+----------
+
+## 5. Configuration
+- Logging Agent (VUM-04 - Daily - RA-01) - Systems should have a logging agent 
+- Up to date software (VUM-05 - Yearly - RA-02) - Systems should be running up to date software
+- Patching (VUM-06 - Monthly - RA-02) - Systems should be patched monthly
+
+----------
+
+## 6. Remediation
+- Vulnerability Remediation (VUM-07 - Weekly - RA-02) - Vulnerabilities should be remediated in line with the Vulnerability Management Policy(Critical: 14 days, High 30 days, Medium 60 days)
+
+----------
+
+## 7. AV
+- Anti-Virus (VUM-10 - Static - RA-05) - Systems should have AV
+- Scanning Frequency (VUM-11 - Daily - RA-03) - AV systems should conduct live behavioral analysis or scan at least daily
+- AV Tamper Protection (VUM-12 - Static - RA-01) - AV should not be able to be disabled by the end users
+
+----------
+
+CVSS	   |  Severity	|Remediation
+9.0 - 10.0 |  Critical	| 14 days
+7.0 - 8.9  |  High	    | 30 days
+4.0 - 6.9  |  Medium	| 60 days
