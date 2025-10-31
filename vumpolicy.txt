@@ -1,9 +1,8 @@
 
 # VULNERABILITY MANAGEMENT POLICY
 
-| Policy ID | VM-2025-001 | Version | 1.0 |
+| **Owner** | Security Department | **Last Updated** | October 31, 2025 |
 |---|---|---|---|
-| **Owner** | Security Department | **Last Updated** | October 17, 2025 |
 
 ---
 
@@ -55,7 +54,7 @@ This policy applies to all technology assets owned, leased, or managed by the or
 
 ----------
 
-CVSS	   |  Severity	|Remediation
+CVSS	      |  Severity	|Remediation
 9.0 - 10.0 |  Critical	| 14 days
 7.0 - 8.9  |  High	    | 30 days
 4.0 - 6.9  |  Medium	| 60 days
