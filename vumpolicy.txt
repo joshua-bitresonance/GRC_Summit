@@ -1,7 +1,7 @@
 
 # VULNERABILITY MANAGEMENT POLICY
 
-| **Owner** | Security Department | **Last Updated** | October 31, 2025 |
+| **Owner** | Security Department | **Last Updated** | November 1, 2025 |
 |---|---|---|---|
 
 ---
@@ -38,7 +38,7 @@ This policy applies to all technology assets owned, leased, or managed by the or
 ## 5. Configuration
 - Logging Agent (VUM-04 - Daily - RA-01) - Systems should have a logging agent 
 - Up to date software (VUM-05 - Yearly - RA-02) - Systems should be running up to date software
-- Patching (VUM-06 - Monthly - RA-02) - Systems should be patched monthly
+- Patching (VUM-06 - Monthly - RA-02) - Suzette should patchs monthly
 
 ----------
 
