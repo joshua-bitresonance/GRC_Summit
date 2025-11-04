@@ -1,0 +1,200 @@
+{
+  "name": "GRC_Summit_Policy_Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk",
+          "mode": "list",
+          "cachedResultName": "GRC Summit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1390167603,
+          "mode": "list",
+          "cachedResultName": "Control Library",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk/edit#gid=1390167603"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "37a3aa5e-0a24-4a4e-8b58-559d29cd51c4",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUeRiKjHhkMjgJ0i",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * n8n Code Node Script: Policy Generator\n *\n * This script takes an array of control objects (from a Google Sheet, etc.)\n * and injects them into a hardcoded Markdown policy template.\n *\n * Input ($json): An array of control objects.\n * Output: A single n8n item containing the generated policy content.\n *\n * In your n8n workflow:\n * 1. This \"Code\" node should receive data from your Google Sheets node (which provides the $json array).\n * 2. The *next* node in your workflow should be your GitHub node.\n * 3. In the GitHub node, you will reference the output of this code.\n * For example, in the \"Content\" field of the GitHub node, you would use an expression\n * like: {{ $json.policyContent }}\n */\n\n// $json in an n8n Code node holds the data from the previous node.\n// We assume $json is the array of controls you provided.\n//\n// FIX: The error 'controls is not iterable' means $json is not an array.\n// This typically happens when the previous node (e.g., Google Sheets)\n// outputs one item per row.\n// We change '$json' to 'items.map(item => item.json)' to collect all\n// incoming items into a single array for processing.\nconst controls = items.map(item => item.json);\n\n// Get current date and format it\nconst today = new Date();\nconst options = { year: 'numeric', month: 'long', day: 'numeric' };\nconst formattedDate = today.toLocaleDateString('en-US', options); // e.g., \"October 30, 2025\"\n\n// --- Your Policy Template ---\n// The '==========' lines are placeholders we will replace.\n// The '__LAST_UPDATED__' placeholder will be replaced with the current date.\nconst policyTemplate = `\n# VULNERABILITY MANAGEMENT POLICY\n\n| **Owner** | Security Department | **Last Updated** | __LAST_UPDATED__ |\n|---|---|---|---|\n\n---\n\n## 1. Purpose\n\nThe purpose of this Vulnerability Management Policy is to establish a structured and consistent process for the proactive identification, assessment, remediation, and reporting of security weaknesses across all organizational assets.\n\n---\n\n## 2. Scope\n\nThis policy applies to all technology assets owned, leased, or managed by the organization, including, but not limited to: servers, network devices, workstations, cloud environments, internally developed applications, and third-party software used by employees or contractors.\n\n---\n\n## 3. Roles and Responsibilities\n\n| Role/Department | Responsibilities |\n|---|---|\n| **Security Team** | Leads the program, defines scanning schedules, analyzes all vulnerability data, and manages the exception process. |\n| **IT Operations** | Responsible for applying patches and configuration changes to address identified vulnerabilities within established service level agreements (SLAs). |\n| **Application Owners** | Responsible for remediation of vulnerabilities within their dedicated applications, particularly those found in custom code or dependencies. |\n| **Management** | Responsible for approving policy, allocating resources, and reviewing periodic risk and remediation reports. |\n\n---\n\n## 4. Detection\n==========\n\n----------\n\n## 5. Configuration\n==========\n\n----------\n\n## 6. Remediation\n==========\n\n----------\n\n## 7. AV\n==========\n\n----------\n\nCVSS\t      |  Severity\t|Remediation\n9.0 - 10.0 |  Critical\t| 14 days\n7.0 - 8.9  |  High\t    | 30 days\n4.0 - 6.9  |  Medium\t| 60 days\n`;\n\n// 1. Group controls by their \"Policy Section\"\nconst sections = {};\nfor (const control of controls) {\n  // Get the section name, e.g., \"Detection\"\n  const sectionName = control[\"Policy Section\"];\n\n  // Filter out controls that are missing key info.\n  // This skips rows where ControlName AND Description are both empty.\n  if (!control.ControlName && !control.Description) {\n    continue;\n  }\n\n  // If this is a new section, initialize an empty array\n  if (sectionName && !sections[sectionName]) {\n    sections[sectionName] = [];\n  }\n\n  // Add the control to its section\n  if (sectionName) {\n    sections[sectionName].push(control);\n  }\n}\n\n// 2. Sort and format the controls within each section\nconst formattedSections = {};\nfor (const sectionName in sections) {\n  const sectionControls = sections[sectionName];\n\n  // Sort controls by \"Section Order\"\n  sectionControls.sort((a, b) => a[\"Section Order\"] - b[\"Section Order\"]);\n\n  // Format each control into the desired string\n  // Format: Control Name (Control Number - Frequency - Risk Assignment) - Control Description.\n  const formattedControlStrings = sectionControls.map(control => {\n    // Use '||' to provide fallbacks for potentially empty fields\n    const name = control.ControlName || 'N/A';\n    const number = control[\"Control Number\"] || 'N/A';\n    const freq = control.Frequency || 'N/A';\n    const risk = control.RiskAssignment || 'N/A';\n    const desc = control.Description || 'No description provided.';\n\n    // We add a leading '- ' to format it as a Markdown bullet point\n    return `- ${name} (${number} - ${freq} - ${risk}) - ${desc}`;\n  });\n\n  // Join all formatted controls for this section with a newline\n  formattedSections[sectionName] = formattedControlStrings.join('\\n');\n}\n\n// 3. Inject the current date and controls into the policy template\nlet finalPolicy = policyTemplate.replace('__LAST_UPDATED__', formattedDate);\n\n/**\n * Helper function to inject controls into the template.\n * It looks for a section title (e.g., \"Detection\") and replaces the\n * '==========' line directly beneath it with the provided text.\n * @param {string} template - The policy template string.\n * @param {string} sectionTitle - The title of the section (e.g., \"Detection\").\n * @param {string} controlsText - The formatted block of controls.\n * @returns {string} - The template with the section injected.\n */\nfunction injectControls(template, sectionTitle, controlsText) {\n  // This regex finds a line like \"## 4. Detection\" (case-insensitive)\n  // and replaces the \"==========\" on the *next* line.\n  const regex = new RegExp(`(##\\\\s*\\\\d*\\\\.\\\\s*${sectionTitle}\\\\s*\\\\n)==========`, 'i');\n  \n  // If no controls are found, insert a placeholder message.\n  const replacementText = controlsText || '*No controls defined for this section.*';\n  \n  // $1 captures the header line (e.g., \"## 4. Detection\\n\")\n  const replacement = `$1${replacementText}`;\n  \n  return template.replace(regex, replacement);\n}\n\n// Inject each section's controls into the template\nfinalPolicy = injectControls(finalPolicy, \"Detection\", formattedSections[\"Detection\"]);\nfinalPolicy = injectControls(finalPolicy, \"Configuration\", formattedSections[\"Configuration\"]);\nfinalPolicy = injectControls(finalPolicy, \"Remediation\", formattedSections[\"Remediation\"]);\nfinalPolicy = injectControls(finalPolicy, \"AV\", formattedSections[\"AV\"]);\n\n\n// 4. Return the final data to n8n\n// The output is an array containing a single object.\n// The next node (e.g., GitHub node) can access the policy\n// using the expression: {{ $json.policyContent }}\n//\n// IMPORTANT: This code node *consumes* all the individual row items\n// and outputs a *single item* containing the complete policy.\nreturn [\n  {\n    json: {\n      policyContent: finalPolicy,\n      message: `Policy generated successfully with ${controls.length} controls processed.`\n    }\n  }\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "2f9b8ec8-5474-4c68-b19a-8ed23202960e",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "value": "joshua-bitresonance",
+          "mode": "list",
+          "cachedResultName": "joshua-bitresonance",
+          "cachedResultUrl": "https://github.com/joshua-bitresonance"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "GRC_Summit",
+          "mode": "list",
+          "cachedResultName": "GRC_Summit",
+          "cachedResultUrl": "https://github.com/joshua-bitresonance/GRC_Summit"
+        },
+        "filePath": "vumpolicy.txt",
+        "fileContent": "={{ $json.policyContent }}",
+        "commitMessage": "={{ \"Policy update via automation at \" + $now.toISO()}}"
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        1056,
+        0
+      ],
+      "id": "47273f6c-0ff4-4c74-ad45-51692a594ef3",
+      "name": "Edit a file",
+      "webhookId": "f7ef06d3-d0d2-4de0-8fd8-e4d42a449a92",
+      "credentials": {
+        "githubApi": {
+          "id": "f8J1JfcEqKeuDQV9",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "76ba1041-7a3c-4536-8653-e2ed61e95199",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "user": {
+          "__rl": true,
+          "value": "U09LYMU2WTY",
+          "mode": "list",
+          "cachedResultName": "joshua"
+        },
+        "message": "Please approve the latest update to the Vulnerability Management Policy ",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {
+          "appendAttribution": true
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        736,
+        -176
+      ],
+      "id": "b2611261-357b-486b-bf6c-0ac75c150cf7",
+      "name": "Send a message",
+      "webhookId": "160365f2-2eb7-4f4f-b84c-ebb3b7780e6f",
+      "alwaysOutputData": false,
+      "credentials": {
+        "slackApi": {
+          "id": "RDkjTgwEULvusiza",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "66b014cf-79c1-4b86-bb91-5a08db1be452",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "af26d5863a494bc1b7d4fda30c6560db9323b68ed3c53876dd47b6f3365df8b8"
+  },
+  "id": "j6r7lzvxN7xDD5hT",
+  "tags": [
+    {
+      "createdAt": "2025-10-15T20:17:34.143Z",
+      "updatedAt": "2025-10-15T20:17:34.143Z",
+      "id": "P3YuIpWilyiWtpcm",
+      "name": "GRC_Summit"
+    }
+  ]
+}

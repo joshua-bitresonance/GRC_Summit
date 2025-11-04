@@ -1,0 +1,529 @@
+{
+  "name": "GRC_Summit_Ticket_Scheduler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        48,
+        64
+      ],
+      "id": "0823edaa-c6ec-42c7-abf7-e6785284811f",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "project": {
+          "__rl": true,
+          "value": "10066",
+          "mode": "list",
+          "cachedResultName": "Support"
+        },
+        "issueType": {
+          "__rl": true,
+          "value": "10070",
+          "mode": "list",
+          "cachedResultName": "Task"
+        },
+        "summary": "={{ $json.ticketname }}",
+        "additionalFields": {
+          "description": "={{ \"Control Number: \" + $json[\"Control Number\"] + \"\\nControl Name: \" + $json.ControlName + \"\\n\\nDescription: \" + $json.Description + \"\\n\\nRisk Assignment: \" + $json.RiskAssignment + \"\\nFrequency: \" + $json.Frequency }}"
+        }
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        704,
+        64
+      ],
+      "id": "7441a8e6-700c-4af6-9bf0-45282d33d654",
+      "name": "Create an issue",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "YsDGjqvvrAOU6hRn",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the entire array of items from the previous node.\nconst allInputItems = $input.all();\n\n// Get the current time using n8n's built-in Luxon library.\nconst currentTime = $now.toISO();\n\n// Create the single JSON object that will be the output.\nconst outputObject = {\n  // A field to hold the entire JSON array as a string.\n  full_json_string: JSON.stringify(allInputItems),\n  // A field to hold the current timestamp.\n  timestamp: currentTime,\n};\n\n// Return the new object inside an array, as n8n always expects an array of items.\nreturn [outputObject];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        -96
+      ],
+      "id": "08526263-5b62-4ca1-bc55-95123ce69661",
+      "name": "Logging_Part_2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the entire array of items from the previous node.\nconst allInputItems = $input.all();\n\n// Get the current time using n8n's built-in Luxon library.\nconst currentTime = $now.toISO();\n\n// Create the single JSON object that will be the output.\nconst outputObject = {\n  // A field to hold the entire JSON array as a string.\n  full_json_string: JSON.stringify(allInputItems),\n  // A field to hold the current timestamp.\n  timestamp: currentTime,\n};\n\n// Return the new object inside an array, as n8n always expects an array of items.\nreturn [outputObject];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        320
+      ],
+      "id": "b138f1c4-199d-46e8-bb59-54342401cb73",
+      "name": "Logging_Part_1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all items from the previous node.\nconst items = $input.all();\n\n// Get the current date and time using n8n's built-in Luxon library.\nconst now = $now;\n\n// Get the current day of the week (1 = Monday, 7 = Sunday).\nconst currentDayOfWeek = now.weekday;\n// Get the current day of the month.\nconst currentDayOfMonth = now.day;\n// Get the current month (1 = January, 12 = December).\nconst currentMonth = now.month;\n\n// 1) Filter the data based on frequency and current date.\n// We must now access item.json.Frequency and not just item.Frequency\nconst filteredItems = items.filter(item => {\n  const frequency = (item.json.Frequency ?? '').trim().toLowerCase();\n\n  // Rule 1: Remove \"Static\" items\n  if (frequency === 'static') {\n    return false; // Exclude this item\n  }\n\n  // Rule 2: Remove \"Weekly\" items if it is not a Monday\n  if (frequency === 'weekly') {\n    return currentDayOfWeek === 1; // Keep only if today is Monday\n  }\n\n  // Rule 3: Remove \"Monthly\" items if it is not the first day of the month\n  if (frequency === 'monthly') {\n    return currentDayOfMonth === 1; // Keep only if today is the 1st\n  }\n\n  // Rule 4: Remove \"Quarterly\" items if not the first day of a quarter month\n  if (frequency === 'quarterly') {\n    const isQuarterStartMonth = [1, 4, 7, 10].includes(currentMonth);\n    return currentDayOfMonth === 1 && isQuarterStartMonth;\n  }\n\n  // Rule 5: Remove \"Yearly\" items if it is not the first day of the year\n  if (frequency === 'yearly') {\n    return currentDayOfMonth === 1 && currentMonth === 1;\n  }\n\n  // Keep any items that don't match the above rules (e.g., Daily).\n  return true;\n});\n\n// 2) Add the \"ticketname\" field and create its value for the remaining items.\n// We must now access item.json to get the correct values.\nconst outputItems = filteredItems.map(item => {\n  // Safely get the first letter of the frequency, defaulting to a blank string\n  // if the Frequency field is missing.\n  // REMOVED .toLowerCase() from this line\n  const freqLetter = item.json.Frequency ? item.json.Frequency.substring(0, 1) : '';\n\n  // Safely remove hyphens from the \"Control Number\".\n  const controlNumber = item.json['Control Number'] ? item.json['Control Number'].replace(/-/g, '') : '';\n\n  // Get the current date in mmddyy format.\n  const dateFormatted = now.toFormat('MMddyy');\n\n  // Create the ticketname value.\n  const ticketname = `${controlNumber}${freqLetter}${dateFormatted}`;\n\n  // Add the new field to the item.\n  item.json.ticketname = ticketname;\n\n  // Return the modified item for the output.\n  return item;\n});\n\n// Return the final array of filtered and modified items.\nreturn outputItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        64
+      ],
+      "id": "9ebab7e9-505a-4008-9d07-f8e0a07904b9",
+      "name": "Schedule_filter_manipulation"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1040,
+        80
+      ],
+      "id": "369f45fa-a28b-40f7-a60a-82e480ceaa0a",
+      "name": "Reassociate_Data"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk",
+          "mode": "list",
+          "cachedResultName": "GRC Summit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1390167603,
+          "mode": "list",
+          "cachedResultName": "Control Library",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk/edit#gid=1390167603"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        256,
+        64
+      ],
+      "id": "0c747ea6-dfcb-465b-98b9-1f8dacd00b24",
+      "name": "Get_Controls",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUeRiKjHhkMjgJ0i",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "109rRKqy8m8Gkb-XSofsM8lFogMDzA_XvhTJpKy-w9nw",
+          "mode": "list",
+          "cachedResultName": "RCA Schedule Run Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/109rRKqy8m8Gkb-XSofsM8lFogMDzA_XvhTJpKy-w9nw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/109rRKqy8m8Gkb-XSofsM8lFogMDzA_XvhTJpKy-w9nw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $now.toISO() }}",
+            "Json Export": "={{ $input.all() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Json Export",
+              "displayName": "Json Export",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Schedule Output",
+              "displayName": "Schedule Output",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        720,
+        320
+      ],
+      "id": "65dbb9d6-d615-4a50-b80a-44ca9fc062df",
+      "name": "Post_Log1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUeRiKjHhkMjgJ0i",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "109rRKqy8m8Gkb-XSofsM8lFogMDzA_XvhTJpKy-w9nw",
+          "mode": "list",
+          "cachedResultName": "RCA Schedule Run Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/109rRKqy8m8Gkb-XSofsM8lFogMDzA_XvhTJpKy-w9nw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/109rRKqy8m8Gkb-XSofsM8lFogMDzA_XvhTJpKy-w9nw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Schedule Output": "={{ JSON.stringify($input.all()) }} }}",
+            "Date": "={{ $now.toISO()}}"
+          },
+          "matchingColumns": [
+            "Date"
+          ],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Json Export",
+              "displayName": "Json Export",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Schedule Output",
+              "displayName": "Schedule Output",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        -96
+      ],
+      "id": "80828de1-66f7-418b-8b82-25cabd279d13",
+      "name": "Post_Log2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUeRiKjHhkMjgJ0i",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk",
+          "mode": "list",
+          "cachedResultName": "GRC Summit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1113945017,
+          "mode": "list",
+          "cachedResultName": "TicketLink",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk/edit#gid=1113945017"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Control Number": "={{ $json[\"Control Number\"] }}",
+            "ControlName": "={{ $json.ControlName }}",
+            "RiskAssignment": "={{ $json.RiskAssignment }}",
+            "Description": "={{ $json.Description }}",
+            "TicketLink": "={{ $json.self }}",
+            "Ticket ID": "={{ $json.ticketname }}",
+            "Key": "={{ $json.key }}",
+            "Timestamp": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "Control Number"
+          ],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ControlName",
+              "displayName": "ControlName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Control Number",
+              "displayName": "Control Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RiskAssignment",
+              "displayName": "RiskAssignment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "TicketLink",
+              "displayName": "TicketLink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ticket ID",
+              "displayName": "Ticket ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Key",
+              "displayName": "Key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1248,
+        80
+      ],
+      "id": "2695a96f-2ba3-4190-950e-a5231b9dda61",
+      "name": "Post_Ticket_Info",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUeRiKjHhkMjgJ0i",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get_Controls",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an issue": {
+      "main": [
+        [
+          {
+            "node": "Reassociate_Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Logging_Part_2": {
+      "main": [
+        [
+          {
+            "node": "Post_Log2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Logging_Part_1": {
+      "main": [
+        [
+          {
+            "node": "Post_Log1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule_filter_manipulation": {
+      "main": [
+        [
+          {
+            "node": "Create an issue",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Reassociate_Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Reassociate_Data": {
+      "main": [
+        [
+          {
+            "node": "Post_Ticket_Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_Controls": {
+      "main": [
+        [
+          {
+            "node": "Schedule_filter_manipulation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post_Log1": {
+      "main": [
+        []
+      ]
+    },
+    "Post_Log2": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3575e0e8-6ed8-426a-956e-640f9372dd32",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "af26d5863a494bc1b7d4fda30c6560db9323b68ed3c53876dd47b6f3365df8b8"
+  },
+  "id": "6uSTVSwUWTw110XF",
+  "tags": [
+    {
+      "createdAt": "2025-10-15T20:17:34.143Z",
+      "updatedAt": "2025-10-15T20:17:34.143Z",
+      "id": "P3YuIpWilyiWtpcm",
+      "name": "GRC_Summit"
+    }
+  ]
+}

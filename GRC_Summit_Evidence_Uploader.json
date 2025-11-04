@@ -1,0 +1,623 @@
+{
+  "name": "GRC_Summit_Evidence_Uploader",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "22e4af81-edef-4c22-bef0-9019a7972cbb",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk",
+          "mode": "list",
+          "cachedResultName": "GRC Summit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1113945017,
+          "mode": "list",
+          "cachedResultName": "TicketLink",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk/edit#gid=1113945017"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "acfef16d-c249-40eb-b683-3df3dff5133b",
+      "name": "Get_Tickets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUeRiKjHhkMjgJ0i",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const filteredItems = items.filter(item => item.json.Status !== 'Done');\n\nconst keys = filteredItems.map(item => `'${item.json.Key}'`);\n\nconst jqlQuery = `key in (${keys.join(', ')})`;\n\nreturn [{ json: { jqlQuery: jqlQuery } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "1e26a814-71d0-4114-94ba-47af32a9fabb",
+      "name": "Filter_Data"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "options": {
+          "fields": "*all,attachment",
+          "jql": "={{ $json.jqlQuery }}"
+        }
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        624,
+        0
+      ],
+      "id": "0214c05c-d769-4747-b780-06ec2d2e2f3b",
+      "name": "Get_Ticket_Info",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "idgE62Q3HnjYSCh4",
+          "name": "Jira SW Cloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const processedItems = [];\n\nfor (const item of items) {\n  const jiraData = item.json;\n  \n  // Extract the Control Number from the description field.\n  // This approach is a bit fragile if the description format changes.\n  const description = jiraData.fields.description;\n  const controlNumberMatch = description.match(/Control Number: ([^\\n]+)/);\n  const controlNumber = controlNumberMatch ? controlNumberMatch[1].trim() : null;\n  \n  // Create a new, clean object with only the data we need.\n  const newJiraItem = {\n    Key: jiraData.key,\n    Status: jiraData.fields.status.name,\n    TicketLink: jiraData.self,\n    'Control Number': controlNumber,\n    attachments: jiraData.fields.attachment || [],\n  };\n  \n  processedItems.push({ json: newJiraItem });\n}\n\nreturn processedItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        -208
+      ],
+      "id": "b28e3ca5-db34-4359-95c5-6b3af558dae2",
+      "name": "Manipulate_Data"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk",
+          "mode": "list",
+          "cachedResultName": "GRC Summit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1113945017,
+          "mode": "list",
+          "cachedResultName": "TicketLink",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk/edit#gid=1113945017"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "={{ $json.Status }}",
+            "Key": "={{ $json.Key }}",
+            "Closed": "={{ $json.Status === 'Done' ? $now.toISO() : ($json.completionTimestamp || '') }}"
+          },
+          "matchingColumns": [
+            "Key"
+          ],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ControlName",
+              "displayName": "ControlName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Control Number",
+              "displayName": "Control Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "RiskAssignment",
+              "displayName": "RiskAssignment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "TicketLink",
+              "displayName": "TicketLink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ticket ID",
+              "displayName": "Ticket ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Key",
+              "displayName": "Key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Closed",
+              "displayName": "Closed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1072,
+        -208
+      ],
+      "id": "440a9793-988c-497b-85f0-a51678ef95e0",
+      "name": "Update_ticket_status",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUeRiKjHhkMjgJ0i",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of items) {\n  if (item.json.fields.attachment.length > 0) {\n    return [item];\n  }\n}\nreturn [];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        0
+      ],
+      "id": "de3de3d1-dc37-4e02-af68-c781b0aedc0d",
+      "name": "Detect_attachment"
+    },
+    {
+      "parameters": {
+        "resource": "issueAttachment",
+        "operation": "get",
+        "attachmentId": "={{ $json.fields.attachment[0].id }}"
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        0
+      ],
+      "id": "8a7c6052-3a73-4006-b730-7edde05a76f0",
+      "name": "Get_attachment_info",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "idgE62Q3HnjYSCh4",
+          "name": "Jira SW Cloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.content }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "file",
+              "outputPropertyName": "data, headers"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        224
+      ],
+      "id": "afd4018b-bc4d-4bd0-9ff5-9d64edd2efe0",
+      "name": "Request_attachment",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "idgE62Q3HnjYSCh4",
+          "name": "Jira SW Cloud account"
+        },
+        "httpBasicAuth": {
+          "id": "IqFVFzPG02RE8Hb1",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        208,
+        224
+      ],
+      "id": "d68f7541-2412-4c79-9a40-0c5b74a03d43",
+      "name": "Reassociate_Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const httpResponseItem = items[items.length - 1]; // Assuming the HTTP response is the last item\nconst fileHeaders = httpResponseItem.json.headers;\nconst contentDisposition = fileHeaders['content-disposition'];\n\n// Extract the filename from the headers\nconst filename = contentDisposition.split('; ')[1].split('=')[1].slice(1, -1);\n\nlet correlatedJiraKey = null;\n\n// Iterate through the Jira issues (all but the last item) to find a match\nfor (let i = 0; i < items.length - 1; i++) {\n  const jiraIssue = items[i];\n  const attachments = jiraIssue.json.fields.attachment;\n\n  if (attachments && attachments.length > 0) {\n    if (attachments[0].filename === filename) {\n      correlatedJiraKey = jiraIssue.json.key;\n      break; // Stop searching once a match is found\n    }\n  }\n}\n\n// Add the correlated Jira key to the HTTP response item\nhttpResponseItem.json.jiraKey = correlatedJiraKey;\n\n// Return only the modified HTTP response item\nreturn [httpResponseItem];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        224
+      ],
+      "id": "c91d4f48-7121-4d03-a20f-3428568eb289",
+      "name": "Clean_data"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk",
+          "mode": "list",
+          "cachedResultName": "GRC Summit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1113945017,
+          "mode": "list",
+          "cachedResultName": "TicketLink",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ze74Y79sOiRVM8K_NSrmDLpD7XgPtzFbv7HlNRAZDwk/edit#gid=1113945017"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Key",
+              "lookupValue": "={{ $json.jiraKey }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        224
+      ],
+      "id": "b30f5c20-5045-4446-9f65-a896324b4f96",
+      "name": "Update_ticket_details",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "yUeRiKjHhkMjgJ0i",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        848,
+        240
+      ],
+      "id": "40faed29-50d6-40e2-9da6-cdb7453818ef",
+      "name": "Reassociate_Data_again"
+    },
+    {
+      "parameters": {
+        "jsCode": "const jiraItem = items[0];\nconst httpItem = items[1];\n\n// This object maps Control Numbers to folder URLs.\nconst folderMap = {\n  'VUM-01': 'https://drive.google.com/drive/folders/1Y7GEwYllx9ETUC6VG5nDqW1A65QEeFJL',\n  'VUM-02': 'https://drive.google.com/drive/folders/1zfxM4TobIUpKfeJFBOo4Unl_22nGRmRS',\n  'VUM-03': 'https://drive.google.com/drive/folders/14yij0wBFOWpyZjLvWb4IsIYg2huaWAGB',\n  'VUM-04': 'http://drive.google.com/drive/folders/1VCAp7vcT46YxRVSknCkySanO0S5CTlX7',\n  'VUM-05': 'https://drive.google.com/drive/folders/1WCh-9vTHQ11zRdwY_cz2G5blYLVBv0XB',\n  'VUM-06': 'https://drive.google.com/drive/folders/1NjZMWi9HMWL1GW8eMQ-atqRb2r_ejQVY',\n  'VUM-07': 'https://drive.google.com/drive/folders/1N-GnZY9UHfEwSpWa7-Adn-zxM94X1fhL',\n  'VUM-08': 'https://drive.google.com/drive/folders/1Ka1OJxaezod9NbcuDWWWG0YKb6ngBRmd',\n  'VUM-09': 'https://drive.google.com/drive/folders/1HFsQFKUiafdbMAP9VeU33et6Wy5f36OL',\n  'VUM-10': 'https://drive.google.com/drive/folders/1mZeZvps8bx8ooAK3_8aGVqAXyoRjAc34',\n  'VUM-11': 'https://drive.google.com/drive/folders/179McIAIbAdrn1Yqv9hoA3Hl2AfAjzPie',\n  'VUM-12': 'https://drive.google.com/drive/folders/179McIAIbAdrn1Yqv9hoA3Hl2AfAjzPie'\n};\n\n// Extract the Control Number from the Jira data to use as the lookup key.\nconst controlNumber = jiraItem.json['Control Number'];\n\n// Find the corresponding folder URL. If not found, a null value will be returned.\nconst folderURL = folderMap[controlNumber];\n\n// Extract the filename from the HTTP headers for use in the next node.\nconst contentDisposition = httpItem.json.headers['content-disposition'];\nconst filenameMatches = contentDisposition.match(/filename=\"(.+)\"/);\nconst filename = filenameMatches ? filenameMatches[1] : null;\n\n// Dynamically get the key of the binary data field.\nconst binaryDataKey = Object.keys(httpItem.binary)[0];\n\n// Combine the JSON data from both items into one object.\nconst combinedJson = {\n  ...jiraItem.json,\n  ...httpItem.json,\n  uploadFilename: filename, // Add a dedicated property for the filename.\n  uploadFolderURL: folderURL // Add the folder URL to the JSON.\n};\n\n// Create a new item containing the combined JSON and the binary file.\nconst newItem = {\n  json: combinedJson,\n  binary: {\n    data: httpItem.binary[binaryDataKey]\n  }\n};\n\n// Return the new, single item.\nreturn [newItem];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        240
+      ],
+      "id": "96b39dd0-f152-4e73-99ba-e8ed0746d9c0",
+      "name": "Manual_Drive_hashmap"
+    },
+    {
+      "parameters": {
+        "name": "={{ $json[\"Ticket ID\"] }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "https://drive.google.com/drive/folders/1GNbuTzLuGO7PZN3CceMPpg80m-PMSyCy",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1232,
+        240
+      ],
+      "id": "b0843d07-8ed6-41a9-a2af-3cb7c715f159",
+      "name": "upload_evidence",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "Ue4xJcYW53FEKMhi",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get_Tickets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_Tickets": {
+      "main": [
+        [
+          {
+            "node": "Filter_Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter_Data": {
+      "main": [
+        [
+          {
+            "node": "Get_Ticket_Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_Ticket_Info": {
+      "main": [
+        [
+          {
+            "node": "Manipulate_Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Detect_attachment",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Reassociate_Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manipulate_Data": {
+      "main": [
+        [
+          {
+            "node": "Update_ticket_status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect_attachment": {
+      "main": [
+        [
+          {
+            "node": "Get_attachment_info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_attachment_info": {
+      "main": [
+        [
+          {
+            "node": "Request_attachment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request_attachment": {
+      "main": [
+        [
+          {
+            "node": "Reassociate_Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Reassociate_Data": {
+      "main": [
+        [
+          {
+            "node": "Clean_data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean_data": {
+      "main": [
+        [
+          {
+            "node": "Update_ticket_details",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Reassociate_Data_again",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Update_ticket_details": {
+      "main": [
+        [
+          {
+            "node": "Reassociate_Data_again",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reassociate_Data_again": {
+      "main": [
+        [
+          {
+            "node": "Manual_Drive_hashmap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual_Drive_hashmap": {
+      "main": [
+        [
+          {
+            "node": "upload_evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "upload_evidence": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e9ddb18b-ff73-4137-9131-57ccf5c65c9f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "af26d5863a494bc1b7d4fda30c6560db9323b68ed3c53876dd47b6f3365df8b8"
+  },
+  "id": "651xQQE6OglP0n8V",
+  "tags": [
+    {
+      "createdAt": "2025-10-15T20:17:34.143Z",
+      "updatedAt": "2025-10-15T20:17:34.143Z",
+      "id": "P3YuIpWilyiWtpcm",
+      "name": "GRC_Summit"
+    }
+  ]
+}
