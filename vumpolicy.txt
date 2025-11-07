@@ -30,22 +30,30 @@ This policy applies to all technology assets owned, leased, or managed by the or
 ---
 
 ## 4. Detection
-*No controls defined for this section.*
+- Vulnerability Scanning (VUM-01 - Monthly - RA-01) - The Mark will monthly conduct monthly vulnerabiltiy scans
+- Penetration Test (VUM-02 - Yearly - RA-01) - The Dan will conduct annual penetration test
+- Operation System Review (VUM-03 - Yearly - RA-01) - Configuration(OS/software) Review
 
 ----------
 
 ## 5. Configuration
-- Testing 123 (VUM-05 - Daily - RA-01) - This GRC summit day testing
+- Configuration Standard (VUM-04 - Static - RA-01) - The Jonah will define a configuration standard
+- Automated Configuration enforcement (VUM-05 - Weekly - RA-01) - All systems should have a software that enforce configs
+- Only necessary software (VUM-06 - Daily - RA-01) - Systems will be deployed with only the necessary software
 
 ----------
 
 ## 6. Remediation
-*No controls defined for this section.*
+- Patching (VUM-07 - Daily - RA-01) - Systems will be patched monthly
+- System Remediation (VUM-08 - Static - RA-01) - System will be remediated in line with the vulnerability management policy
+- Remediation Scans (VUM-09 - Daily - RA-01) - Scans resulting in a failure will require a secondary scan to verify remediation
 
 ----------
 
 ## 7. AV
-*No controls defined for this section.*
+- AV Required (VUM-10 - Quarterly - RA-01) - All systems should have AV
+- IDs functionality is required (VUM-11 - Daily - RA-01) - Cloud platforms should have IDS enabled 
+- Tamper Protection (VUM-12 - Static - RA-01) - AV must have tamper protection enabled
 
 ----------
 
