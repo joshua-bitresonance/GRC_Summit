@@ -1,7 +1,7 @@
 
 # VULNERABILITY MANAGEMENT POLICY
 
-| **Owner** | Security Department | **Last Updated** | November 1, 2025 |
+| **Owner** | Security Department | **Last Updated** | November 7, 2025 |
 |---|---|---|---|
 
 ---
@@ -30,27 +30,22 @@ This policy applies to all technology assets owned, leased, or managed by the or
 ---
 
 ## 4. Detection
-- Vulnerability Scanning Agent (VUM-02 - Daily - RA-01) - System should have a vulnerability Scanning Agent
-- Vulnerability Scanning Frequency (VUM-03 - Monthly - RA-01) - Systems should have monthly vulnerability scans
+*No controls defined for this section.*
 
 ----------
 
 ## 5. Configuration
-- Logging Agent (VUM-04 - Daily - RA-01) - Systems should have a logging agent 
-- Up to date software (VUM-05 - Yearly - RA-02) - Systems should be running up to date software
-- Patching (VUM-06 - Monthly - RA-02) - Suzette should patchs monthly
+- Testing 123 (VUM-05 - Daily - RA-01) - This GRC summit day testing
 
 ----------
 
 ## 6. Remediation
-- Vulnerability Remediation (VUM-07 - Weekly - RA-02) - Vulnerabilities should be remediated in line with the Vulnerability Management Policy(Critical: 14 days, High 30 days, Medium 60 days)
+*No controls defined for this section.*
 
 ----------
 
 ## 7. AV
-- Anti-Virus (VUM-10 - Static - RA-05) - Systems should have AV
-- Scanning Frequency (VUM-11 - Daily - RA-03) - AV systems should conduct live behavioral analysis or scan at least daily
-- AV Tamper Protection (VUM-12 - Static - RA-01) - AV should not be able to be disabled by the end users
+*No controls defined for this section.*
 
 ----------
 
